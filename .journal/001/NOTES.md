@@ -24,3 +24,16 @@ Key facts gathered (details in agent reports, distilled here):
 - Registry-side disk shipping: OCI 1.1 artifacts (artifactType/Referrers), ORAS, podman artifact stable since 5.6, podman machine distributes its own qcow2 via OCI artifacts, KubeVirt containerDisk (/disk/ in scratch image) as closest analog.
 - First-boot config landscape: cloud-init (Incus-native keys), Ignition, systemd credentials via SMBIOS (Incus only through raw.qemu overrides).
 Next: awaiting user direction; design phase comes later.
+
+## 2026-08-06 16:58 — New goal: spike Containerfile → Incus bootc QCOW2
+Goal directive: prove one or more viable shapes for Containerfile → bootc QCOW2 → Incus import, empirically, no hacks; compare all viable methods. Full autonomy for podman/OrbStack/Lima locally; ask before installing host tools. rk1 remote is dead — local only.
+Environment: macOS 26.4, M4 Max (nested virt capable), podman 5.7.1, lima 2.0.3 (vz+nested), incus client 7.2, qemu-img 10.2, orbstack, docker, oras. No skopeo on host.
+Planned methods: A) bootc-image-builder container B) unified image-builder --bootc-ref C) bcvk to-disk D) bootc install to-disk --via-loopback. Import via incus image import (split) and incus-migrate. Watch for GPT sgdisk bug (bib#1195).
+
+## 2026-08-06 17:15 — Spike progress: Method A built; import bug reproduced + root-caused
+- Task1: minimal Containerfile FROM quay.io/fedora/fedora-bootc:44 (aarch64), root:spike pw; `bootc container lint` 13 checks pass; kernel 7.1.6. Built rootful in podman machine (FCOS 43).
+- Method A (bib container quay.io/centos-bootc/bootc-image-builder:latest): FAILS without `--rootfs` on Fedora images ("missing required info: DefaultRootFs" — Fedora sets no default rootfs). With --rootfs ext4: SUCCESS → 1.1GB qcow2 (10GiB virtual) + vmdk/vpc/gce/ovf checksums in manifest.
+- Incus host: Lima 2.0.3 vz VM w/ nestedVirtualization=true on M4 Max → /dev/kvm present; zabbly incus 7.3 (server) installed. GOTCHA: `incus admin init --auto` failed "no unused IPv4 subnet" (Lima net density); manual `incus network create incusbr0 ipv4.address=10.171.99.1/24` + profile root disk fixed. GOTCHA: images:fedora/43 VM fails default secureboot (unsigned distrobuilder bootloader, "Access Denied"); security.secureboot=false → boots, agent up, IP on bridge. Nested-virt boot is slow (~60-90s to agent).
+- Import: `incus image import metadata.tar.gz spike-bib.qcow2` SUCCEEDS (fingerprint 4b69437e). LAUNCH fails: `sgdisk --move-second-header root.img` exit 4 — bib#1195 reproduced today on latest everything.
+- ROOT CAUSE: sgdisk: "Secondary partition table overlaps the last partition by 2014 blocks... Aborting". osbuild GPT ends last partition flush to disk end, no room for backup table where sgdisk wants it; `sgdisk -v` alone reports "No problems, 0 free sectors". Builder-vs-importer strictness collision; disk itself boots in plain qemu.
+- Next: incus-migrate path w/ same qcow2; Method D (bootc install to-disk, different partitioner) predicted to differ; B likely same osbuild GPT.
