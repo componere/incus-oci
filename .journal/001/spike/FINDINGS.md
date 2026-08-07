@@ -88,3 +88,28 @@ model is fully validated inside Incus VMs.
 - `incus console` on the incus-migrate-created VM errors ("Chardev user does
   not support chardev hotswap") while a stock VM consoles fine — unexplained,
   low priority.
+
+## Addendum: spike 2 — factory image (2026-08-06 evening)
+
+Proven end to end: a factory bootc image whose oneshot service
+(`ImportCredential=target`) reads a systemd credential delivered via Incus
+`raw.qemu` SMBIOS type 11 (`io.systemd.credential:target=<ref>`) and runs
+`bootc switch --apply` into that ref. Served from a real simplestreams tree
+(incus-simplestreams + nginx TLS with a private CA in the system trust
+store). `incus launch factory:fedora/44/factory vm --config 'raw.qemu=...'`
+booted, switched, and rebooted into the target: marker verified, booted ref
+== credential target, factory retained as rollback deployment. 795 s launch
+→ verified switch under nested virt. Negative test: no credential → service
+logs "no 'target' credential" and the VM stays a factory. Idempotency is
+structural: the target image does not contain the service.
+
+New facts:
+- `requirements.secureboot: "false"` in image properties does NOT disable
+  Secure Boot enforcement; explicit `security.secureboot=false` remains
+  required.
+- incusd reads the CA trust store at startup; `update-ca-certificates` needs
+  a daemon restart before server-side simplestreams fetches trust a new CA.
+  Client-side (`incus image list <remote>:`) trusts it immediately.
+- pid1 logs "Received regular credentials: target" each boot; SMBIOS
+  credential delivery is per-boot and harmless once the service is gone.
+Sources in `../spike2/`.

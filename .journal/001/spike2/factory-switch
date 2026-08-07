@@ -1,0 +1,30 @@
+#!/usr/bin/bash
+# Reads the systemd credential "target" (delivered via SMBIOS type 11) and
+# switches this host to that bootc image. No credential means stay a factory.
+set -euo pipefail
+
+cred="${CREDENTIALS_DIRECTORY:-}/target"
+if [ ! -s "$cred" ]; then
+    echo "factory-switch: no 'target' credential; remaining a factory image"
+    exit 0
+fi
+
+target="$(tr -d '[:space:]' < "$cred")"
+
+booted="$(bootc status --format json | jq -r '.status.booted.image.image.image // empty')"
+if [ "$booted" = "$target" ]; then
+    echo "factory-switch: already booted into ${target}"
+    exit 0
+fi
+
+echo "factory-switch: switching to ${target}"
+for attempt in 1 2 3; do
+    if bootc switch --apply "$target"; then
+        exit 0
+    fi
+    echo "factory-switch: attempt ${attempt} failed; retrying in 10s"
+    sleep 10
+done
+
+echo "factory-switch: all attempts failed"
+exit 1

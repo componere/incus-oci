@@ -179,9 +179,11 @@ rule come straight from spike failures; the rest are design choices:
 - `properties.os/release/variant/description` come from standard
   `org.opencontainers.image.*` labels when present, flags otherwise, with
   fallbacks so unlabeled images still publish.
-- Emit `requirements.secureboot: "false"` so Incus handles the Secure Boot
-  incompatibility per-image instead of per-instance (verify exact behavior
-  in e2e; the spike only proved the manual `security.secureboot=false` path).
+- Emit `requirements.secureboot: "false"` as documentation, but do not rely
+  on it: spike 2 tested it and Incus still enforced Secure Boot (shim failed
+  with 0x1A). Instances need explicit `security.secureboot=false`. v1 states
+  this in docs; sync growing an optional launch profile on targets is a
+  deferred item.
 - Deterministic bytes: fixed tar entry order, epoch-pinned timestamps,
   root/root ownership, fixed gzip header. Same inputs, same fingerprint,
   idempotent republish.

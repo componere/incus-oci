@@ -1,0 +1,13 @@
+[Unit]
+Description=Switch to the bootc image named by the 'target' credential
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ImportCredential=target
+ExecStart=/usr/libexec/factory-switch
+
+[Install]
+WantedBy=multi-user.target

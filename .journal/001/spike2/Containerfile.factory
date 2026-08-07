@@ -1,0 +1,21 @@
+# Factory bootc image for the incus-bootc spike (aarch64).
+# Boots, reads the SMBIOS-delivered systemd credential "target", and
+# bootc-switches into it. Root password + SSH key are spike debug access.
+FROM quay.io/fedora/fedora-bootc:44
+
+COPY spike_key.pub /usr/share/spike/authorized_keys
+COPY factory-switch /usr/libexec/factory-switch
+COPY factory-switch.service /usr/lib/systemd/system/factory-switch.service
+
+RUN dnf install -y -q jq && dnf clean all && \
+    chmod 0755 /usr/libexec/factory-switch && \
+    echo 'root:spike' | chpasswd && \
+    mkdir -p /etc/ssh/sshd_config.d && \
+    printf 'AuthorizedKeysFile /usr/share/spike/authorized_keys .ssh/authorized_keys\n' \
+      > /etc/ssh/sshd_config.d/40-spike.conf && \
+    printf '[[registry]]\nlocation = "10.171.99.1:5000"\ninsecure = true\n' \
+      > /etc/containers/registries.conf.d/spike.conf && \
+    echo 'factory image' > /usr/share/spike-marker.txt && \
+    systemctl enable factory-switch.service
+
+LABEL org.componere.spike="incus-bootc-factory"
