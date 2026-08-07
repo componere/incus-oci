@@ -57,3 +57,7 @@ Planned methods: A) bootc-image-builder container B) unified image-builder --boo
 - Method C conclusion: bcvk to-disk conclusively blocked on aarch64 today — F44 AND F43 kernels are zstd EFI zboot; host QEMU 10.1 cannot direct-load them; bcvk hangs silently (no console output ever) instead of erroring. Would need newer host QEMU or x86_64 to retest.
 - Full findings written to .journal/001/spike/FINDINGS.md (verdict matrix + osbuild GPT root cause + upgrade lifecycle + operational gotchas). Spike source files preserved in .journal/001/spike/.
 - Environments left in place: podman machine (images + artifacts in /var/tmp), Lima incus-host (Incus 7.3: spike-dvm running v2, spike-mig/spike-bvm/baseline stopped, registry on :5000), Lima bcvk-host (idle). Scratchpad holds all qcow2s.
+
+## 2026-08-06 19:15 — Post-spike Q&A findings (empirical)
+- Raw disk import: `incus image import` AND `incus-simplestreams add` both reject raw ("Unsupported compression" — format sniffer only accepts qcow2 for VMs). Raw is accepted only by incus-migrate (one-off instances, converts client-side). qemu-img convert to qcow2 is unavoidable for image distribution; note Incus converts back to raw internally at unpack.
+- Metadata strictness divergence: incus-simplestreams requires properties.architecture; incus image import accepts top-level architecture only. Emit both. With fixed metadata, our metadata.tar.gz + qcow2 pair added cleanly to a simplestreams tree as a virtual-machine product (combined sha256 fingerprint).
