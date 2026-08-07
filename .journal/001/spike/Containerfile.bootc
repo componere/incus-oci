@@ -1,0 +1,13 @@
+# Minimal bootc variant for the incus-oci spike (aarch64).
+# Root password + SSH key are for spike verification only — this image is throwaway.
+FROM quay.io/fedora/fedora-bootc:44
+
+COPY spike_key.pub /usr/share/spike/authorized_keys
+
+RUN echo 'root:spike' | chpasswd && \
+    echo 'incus-oci spike image' > /usr/share/spike-marker.txt && \
+    mkdir -p /etc/ssh/sshd_config.d && \
+    printf 'AuthorizedKeysFile /usr/share/spike/authorized_keys .ssh/authorized_keys\n' \
+      > /etc/ssh/sshd_config.d/40-spike.conf
+
+LABEL org.componere.spike="incus-oci"

@@ -1,0 +1,2 @@
+FROM localhost/spike-bootc:latest
+RUN echo "incus-oci spike image V2" > /usr/share/spike-marker.txt

@@ -1,0 +1,7 @@
+architecture: aarch64
+creation_date: 1786060898
+properties:
+  os: fedora
+  release: "44"
+  variant: bootc
+  description: incus-oci spike bootc image (Fedora 44 aarch64)
