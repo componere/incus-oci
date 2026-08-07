@@ -9,8 +9,17 @@ implementation; everything else was proven by running it.
 ## 1. What incus-bootc does
 
 incus-bootc turns a bootc Containerfile into a virtual machine image that Incus
-can import, and keeps Incus hosts supplied with those images. It is one Go
-binary with two verbs:
+can import, and keeps Incus hosts supplied with those images.
+
+Context: Componere is a framework for deploying and managing bare-metal
+infrastructure, Kubernetes-focused — IncusOS as the hypervisor layer, Talos
+Linux for the clusters. bootc covers the traditional-VM workloads bare metal
+still needs, and incus-bootc is the blessed path for Componere operators to
+get those VM images onto IncusOS clusters. The primary user is a fleet
+operator, which is why sync is shaped like a reconciler and runs unprivileged
+against the API (the only way to reach an IncusOS host).
+
+It is one Go binary with two verbs:
 
 - `incus-bootc publish` — build the Containerfile, install it into a disk,
   and push both the container image and the disk artifact to an OCI registry.
